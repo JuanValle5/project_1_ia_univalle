@@ -16,27 +16,26 @@ class Node:
         depth (int): Profundidad en el árbol de búsqueda
     """
 
-    def __init__(self, position, parent=None, g=0, h=0, depth=0):
-        self.position = position  # (row, col)
+    # src/utils/node.py
+
+class Node:
+    def __init__(self, position, parent=None, g=0, h=0, f=None, depth=0):
+        self.position = position
         self.parent = parent
-        self.g = g  # Costo desde el inicio
-        self.h = h  # Heurística
-        self.f = g + h  # f(n) = g(n) + h(n)
+        self.g = g
+        self.h = h
+        self.f = f if f is not None else g + h
         self.depth = depth
 
+    def __eq__(self, other):
+        return isinstance(other, Node) and self.position == other.position
+
     def __lt__(self, other):
-        """Comparación para ordenar nodos (usado en heapq)"""
         return self.f < other.f
 
-    def __eq__(self, other):
-        """Dos nodos son iguales si tienen la misma posición"""
-        if not isinstance(other, Node):
-            return False
-        return self.position == other.position
-
     def __hash__(self):
-        """Hash basado en posición para usar en sets y dicts"""
         return hash(self.position)
+
 
     def __repr__(self):
         return f"Node(pos={self.position}, g={self.g:.1f}, h={self.h:.1f}, f={self.f:.1f})"

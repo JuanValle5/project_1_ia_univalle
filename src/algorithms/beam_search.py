@@ -3,22 +3,6 @@ from src.utils.heuristics import manhattan_distance
 
 
 def beam_search(grid, beam_width=3):
-    """
-    Implementación del algoritmo Beam Search.
-    
-    Parámetros:
-    ------------
-    grid : Grid
-        Entorno de búsqueda que contiene las celdas, inicio y meta.
-    beam_width : int
-        Número máximo de nodos que se mantienen en la frontera (ancho del haz).
-    
-    Retorna:
-    ---------
-    list | None
-        Lista con el camino desde el inicio hasta la meta si se encuentra.
-        None si no existe un camino posible.
-    """
 
     # Nodo inicial
     start = Node(grid.start, None, g=0, h=manhattan_distance(grid.start, grid.goal))
@@ -59,19 +43,10 @@ def beam_search(grid, beam_width=3):
 
 
 def reconstruct_path(node):
-    """
-    Reconstruye el camino desde el nodo objetivo hasta el nodo inicial.
+
+    #Reconstruye el camino desde el nodo objetivo hasta el nodo inicial.
     
-    Parámetros:
-    ------------
-    node : Node
-        Nodo final desde el cual se reconstruye el camino.
-    
-    Retorna:
-    ---------
-    list
-        Lista de posiciones (tuplas) que representan el camino recorrido.
-    """
+
     path = []
     current = node
     while current:
@@ -81,15 +56,11 @@ def reconstruct_path(node):
 
 
 def save_unsuccessful_path(visited):
-    """
-    Guarda en un archivo .txt todas las posiciones visitadas durante la búsqueda
-    cuando no se encuentra un camino válido.
+    
+    #Guarda en un archivo .txt todas las posiciones visitadas durante la búsqueda
+    #cuando no se encuentra un camino válido.
 
-    Parámetros:
-    ------------
-    visited : set
-        Conjunto de posiciones (tuplas) exploradas durante la búsqueda.
-    """
+    
     filename = "recorrido_no_encontrado.txt"
 
     with open(filename, "w", encoding="utf-8") as file:

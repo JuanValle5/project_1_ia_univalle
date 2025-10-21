@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+from PIL import Image, ImageTk
 import time
 import sys
 import os
@@ -15,13 +16,13 @@ from src.algorithms.dynamic_weighting import dynamic_weighting_astar
 
 # Colores para el grid
 COLOR_EMPTY = "white"
-COLOR_ANT = "orange"
-COLOR_GOAL = "green"
-COLOR_POISON = "red"
 COLOR_PATH = "yellow"
-COLOR_VISITED = "lightblue"
 
 CELL_SIZE = 50  # Tamaño de cada celda en píxeles
+ICON_SIZE = 40  # Tamaño de los íconos
+
+# Ruta hacia los íconos dentro de tests/assets
+ASSETS_PATH = os.path.join(os.path.dirname(__file__), "tests", "assets")
 
 
 class AntApp:
@@ -37,12 +38,24 @@ class AntApp:
         self.beam_width = tk.IntVar(value=3)
         self.epsilon = tk.DoubleVar(value=1.0)
 
+        # Cargar imágenes
+        self.load_images()
+
         # Crear interfaz
         self.create_widgets()
         self.draw_grid()
 
+    # Cargar imágenes
+    def load_images(self):
+        """Carga y redimensiona los íconos."""
+        self.img_ant = ImageTk.PhotoImage(Image.open(os.path.join(ASSETS_PATH, "ant.png")).resize((ICON_SIZE, ICON_SIZE)))
+        self.img_ant_yellow = ImageTk.PhotoImage(Image.open(os.path.join(ASSETS_PATH, "antyellow.png")).resize((ICON_SIZE, ICON_SIZE)))
+        self.img_mushroom = ImageTk.PhotoImage(Image.open(os.path.join(ASSETS_PATH, "mushroom.png")).resize((ICON_SIZE, ICON_SIZE)))
+        self.img_skull = ImageTk.PhotoImage(Image.open(os.path.join(ASSETS_PATH, "skull.png")).resize((ICON_SIZE, ICON_SIZE)))
+
+
+    # Interfaz
     def create_widgets(self):
-        # Panel lateral de control
         control_frame = ttk.Frame(self.root, padding=10)
         control_frame.grid(row=0, column=0, sticky="ns")
 
@@ -59,16 +72,15 @@ class AntApp:
         ttk.Button(control_frame, text="Ejecutar búsqueda", command=self.run_search).pack(pady=10)
         ttk.Button(control_frame, text="Reiniciar", command=self.reset_grid).pack(pady=5)
 
-        # Canvas donde se dibuja el entorno
+        # Canvas principal
         self.canvas = tk.Canvas(self.root, width=self.cols * CELL_SIZE, height=self.rows * CELL_SIZE, bg="white")
         self.canvas.grid(row=0, column=1)
         self.canvas.bind("<Button-1>", self.handle_click)
 
-    # -----------------------------------------------------------------
+   
     # Dibujo del entorno
-    # -----------------------------------------------------------------
     def draw_grid(self):
-        """Dibuja la cuadrícula completa."""
+        """Dibuja la cuadrícula con íconos e indicadores visuales."""
         self.canvas.delete("all")
         for r in range(self.rows):
             for c in range(self.cols):
@@ -78,21 +90,23 @@ class AntApp:
                 y2 = y1 + CELL_SIZE
 
                 cell = self.grid.cells[r][c]
-                color = COLOR_EMPTY
+
+                # Fondo amarillo para el camino
+                if cell.in_path:
+                    self.canvas.create_rectangle(x1, y1, x2, y2, fill=COLOR_PATH, outline="gray")
+                else:
+                    self.canvas.create_rectangle(x1, y1, x2, y2, fill=COLOR_EMPTY, outline="gray")
+
+                # Dibujar ícono según tipo
                 if cell.type == CellType.ANT:
-                    color = COLOR_ANT
+                    self.canvas.create_image(x1 + CELL_SIZE / 2, y1 + CELL_SIZE / 2, image=self.img_ant)
                 elif cell.type == CellType.MUSHROOM:
-                    color = COLOR_GOAL
+                    self.canvas.create_image(x1 + CELL_SIZE / 2, y1 + CELL_SIZE / 2, image=self.img_mushroom)
                 elif cell.type == CellType.POISON:
-                    color = COLOR_POISON
-                elif cell.in_path:
-                    color = COLOR_PATH
+                    self.canvas.create_image(x1 + CELL_SIZE / 2, y1 + CELL_SIZE / 2, image=self.img_skull)
 
-                self.canvas.create_rectangle(x1, y1, x2, y2, fill=color, outline="gray")
-
-    # -----------------------------------------------------------------
+   
     # Interacción con clics del usuario
-    # -----------------------------------------------------------------
     def handle_click(self, event):
         """Permite colocar la hormiga, el hongo y los venenos con clics."""
         c = event.x // CELL_SIZE
@@ -107,25 +121,40 @@ class AntApp:
 
         self.draw_grid()
 
-    # -----------------------------------------------------------------
-    # Animación del camino encontrado
-    # -----------------------------------------------------------------
+
+    # Animación del movimiento
     def animate_path(self, path):
-        """Muestra visualmente el movimiento de la hormiga paso a paso."""
+        """Muestra visualmente el movimiento animado de la hormiga."""
         for (r, c) in path:
             if (r, c) != self.grid.start and (r, c) != self.grid.goal:
                 self.grid.cells[r][c].in_path = True
                 self.draw_grid()
-                self.root.update()
-                time.sleep(0.3)
 
-    # -----------------------------------------------------------------
+                x = c * CELL_SIZE + CELL_SIZE / 2
+                y = r * CELL_SIZE + CELL_SIZE / 2
+                self.canvas.create_image(x, y, image=self.img_ant_yellow)
+
+                self.root.update()
+                time.sleep(0.25)
+
+
+    # Limpieza del camino anterior
+    def clear_previous_path(self):
+        """Limpia solo el camino anterior sin borrar los objetos ni íconos."""
+        for r in range(self.rows):
+            for c in range(self.cols):
+                if self.grid.cells[r][c].in_path:
+                    self.grid.cells[r][c].in_path = False
+        self.draw_grid()
+
     # Ejecución del algoritmo seleccionado
-    # -----------------------------------------------------------------
     def run_search(self):
         if not self.grid.ant or not self.grid.mushroom:
             messagebox.showwarning("Advertencia", "Debes colocar una posición inicial (A) y una meta (M).")
             return
+
+        # 🔹 Limpia el camino anterior al iniciar una nueva búsqueda
+        self.clear_previous_path()
 
         self.draw_grid()
         self.canvas.update()
@@ -141,17 +170,16 @@ class AntApp:
         else:
             messagebox.showerror("Sin solución", "No se encontró un camino posible.")
 
-    # -----------------------------------------------------------------
-    # Reinicio del entorno
-    # -----------------------------------------------------------------
+   
+    # Reinicio del entorno completo
+  
     def reset_grid(self):
         self.grid = Grid(self.rows, self.cols)
         self.draw_grid()
 
 
-# ---------------------------------------------------------------------
+
 # EJECUCIÓN PRINCIPAL
-# ---------------------------------------------------------------------
 if __name__ == "__main__":
     root = tk.Tk()
     app = AntApp(root)
